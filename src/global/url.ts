@@ -22,6 +22,10 @@ export const ENDING_SLASH_PATTERN = /\/$/;
  * @return {string|undefined} base URI
  */
 export function getBaseURI() {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+
   const baseElement = document.getElementsByTagName('base')[0];
   return baseElement ? baseElement.href : undefined;
 }
@@ -31,6 +35,10 @@ export function getBaseURI() {
  * @return {string} absolute base URI
  */
 export function getAbsoluteBaseURL() {
+  if (typeof window === 'undefined') {
+    return '/';
+  }
+
   const baseUrl = getBaseURI();
   const host = `${window.location.protocol}//${window.location.host}`;
 
