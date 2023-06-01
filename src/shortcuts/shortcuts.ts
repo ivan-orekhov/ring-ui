@@ -39,7 +39,7 @@ export default class Shortcuts extends PureComponent<ShortcutsProps> {
       this.turnShorcutsOn();
     }
     if (prevProps.map !== map) {
-      shortcuts.bindMap(map, this.props);
+      shortcuts().bindMap(map, this.props);
     }
   }
 
@@ -51,14 +51,14 @@ export default class Shortcuts extends PureComponent<ShortcutsProps> {
 
   turnShorcutsOn() {
     const {map, scope, options} = this.props;
-    shortcuts.bindMap(map, this.props);
-    shortcuts.pushScope(scope, options);
+    shortcuts().bindMap(map, this.props);
+    shortcuts().pushScope(scope, options);
   }
 
   turnShorcutsOff() {
     const {scope} = this.props;
-    shortcuts.unbindScope(scope);
-    shortcuts.spliceScope(scope);
+    shortcuts().unbindScope(scope);
+    shortcuts().spliceScope(scope);
   }
 
   render() {

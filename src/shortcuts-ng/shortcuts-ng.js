@@ -1,7 +1,7 @@
 import angular from 'angular';
 
 import {getStyles} from '../global/dom';
-import shortcutsInstance from '../shortcuts/core';
+import getShortcutsInstance from '../shortcuts/core';
 
 
 const angularModule = angular.module('Ring.shortcuts', []);
@@ -46,7 +46,7 @@ angularModule.provider('shortcuts', function provider() {
             return;
           }
 
-          shortcutsInstance.bind({
+          getShortcutsInstance().bind({
             key: key.key,
             scope: scope || name,
             handler: (...args) => {
@@ -66,7 +66,7 @@ angularModule.provider('shortcuts', function provider() {
 
         for (let i = actions.length - 1; i >= 0; i--) {
           if (actions[i].action === action) {
-            return shortcutsInstance.trigger(actions[i].key[0] || actions[i].key);
+            return getShortcutsInstance().trigger(actions[i].key[0] || actions[i].key);
           }
         }
 
@@ -75,7 +75,7 @@ angularModule.provider('shortcuts', function provider() {
 
       isMainMode: name => mainModes[name],
       getRegisteredShortcuts: () => reference,
-      shortcuts: shortcutsInstance
+      shortcuts: getShortcutsInstance()
     };
   };
 });
@@ -131,7 +131,7 @@ angularModule.directive('rgShortcutsApp', function rgShortcutsAppDirective() {
         }
 
         if ($scope.current) {
-          shortcutsInstance.spliceScope($scope.current.scope);
+          getShortcutsInstance().spliceScope($scope.current.scope);
           this.deselect();
         }
 
@@ -139,7 +139,7 @@ angularModule.directive('rgShortcutsApp', function rgShortcutsAppDirective() {
           return;
         }
 
-        shortcutsInstance.pushScope(next.scope);
+        getShortcutsInstance().pushScope(next.scope);
 
         $scope.current = next;
       };
@@ -153,7 +153,7 @@ angularModule.directive('rgShortcutsApp', function rgShortcutsAppDirective() {
         }
 
         // Reset current zone if it's not equal to the current scope
-        if ($scope.current && $scope.current.scope !== shortcutsInstance.getScope().
+        if ($scope.current && $scope.current.scope !== getShortcutsInstance().getScope().
           pop().scopeId) {
           this.deselect();
         }
@@ -172,8 +172,8 @@ angularModule.directive('rgShortcutsApp', function rgShortcutsAppDirective() {
         if (next) {
           this.select(next);
 
-          if (shortcutsInstance.hasKey(combo, next.scope)) {
-            shortcutsInstance.trigger(combo);
+          if (getShortcutsInstance().hasKey(combo, next.scope)) {
+            getShortcutsInstance().trigger(combo);
           }
           // Otherwise go back
         } else {
@@ -200,8 +200,8 @@ angularModule.directive('rgShortcutsApp', function rgShortcutsAppDirective() {
       };
 
       this.destroy = zone => {
-        shortcutsInstance.spliceScope(zone.scope);
-        shortcutsInstance.unbindScope(zone.scope);
+        getShortcutsInstance().spliceScope(zone.scope);
+        getShortcutsInstance().unbindScope(zone.scope);
 
         const position = $scope.zones.indexOf(zone);
 
@@ -218,7 +218,7 @@ angularModule.directive('rgShortcutsApp', function rgShortcutsAppDirective() {
       };
 
       shortcuts.bind('ring-shortcuts', keyMap);
-      shortcutsInstance.pushScope('ring-shortcuts');
+      getShortcutsInstance().pushScope('ring-shortcuts');
     }
   };
 });
@@ -271,12 +271,12 @@ angularModule.directive('rgShortcutsGlobal', function rgShortcutsGlobalDirective
 
       $scope.$evalAsync(() => {
         shortcuts.bind(name, $scope.$eval(iAttrs.shortcutsMap), scope);
-        shortcutsInstance.pushScope(scope);
+        getShortcutsInstance().pushScope(scope);
       });
 
       $scope.$on('$destroy', () => {
-        shortcutsInstance.spliceScope(scope);
-        shortcutsInstance.unbindScope(scope);
+        getShortcutsInstance().spliceScope(scope);
+        getShortcutsInstance().unbindScope(scope);
       });
     }
   };

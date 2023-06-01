@@ -58,7 +58,7 @@ class DialogController extends RingAngularComponent {
 
     $scope.$watch(() => this.active, () => {
       if (this.active) {
-        shortcuts.bindMap(this.getShortcuts(), {
+        shortcuts().bindMap(this.getShortcuts(), {
           scope: this.DIALOG_NAMESPACE
         });
       } else {
@@ -171,9 +171,9 @@ class DialogController extends RingAngularComponent {
       $scope.data = this.data;
     }
 
-    this.currentShortcutsScope = shortcuts.getScope();
+    this.currentShortcutsScope = shortcuts().getScope();
     this.DIALOG_NAMESPACE = this.dialogService.DIALOG_NAMESPACE;
-    shortcuts.setScope(this.dialogService.DIALOG_NAMESPACE);
+    shortcuts().setScope(this.dialogService.DIALOG_NAMESPACE);
 
     this.active = true;
 
@@ -202,8 +202,8 @@ class DialogController extends RingAngularComponent {
 
     Reflect.deleteProperty(this, 'DIALOG_NAMESPACE');
 
-    if (shortcuts.indexOfScope(this.dialogService.DIALOG_NAMESPACE) > -1) {
-      shortcuts.setScope(this.currentShortcutsScope);
+    if (shortcuts().indexOfScope(this.dialogService.DIALOG_NAMESPACE) > -1) {
+      shortcuts().setScope(this.currentShortcutsScope);
     }
 
     this._resetFormState();

@@ -2,7 +2,9 @@ import {simulate} from 'combokeys/test/lib/key-event';
 
 import sniffr from '../global/sniffer';
 
-import shortcuts, {ShortcutsMap} from './core';
+import getShortcuts, {ShortcutsMap} from './core';
+
+let shortcuts: ReturnType<typeof getShortcuts>;
 
 describe('Shortcuts', () => {
   const key = 'a';
@@ -19,6 +21,7 @@ describe('Shortcuts', () => {
   const wrapScope = shortcuts.wrapScope.bind(shortcuts);
 
   beforeEach(() => {
+    shortcuts = getShortcuts();
     shortcuts.reset();
     shortcuts.setScope();
     shortcuts.setFilter();

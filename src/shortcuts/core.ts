@@ -257,4 +257,13 @@ class Shortcuts {
   }
 }
 
-export default new Shortcuts();
+let shortcuts: Shortcuts;
+
+export default function getShortcuts() {
+  if (shortcuts) {
+    return shortcuts;
+  }
+
+  shortcuts = new Shortcuts();
+  return shortcuts;
+}
