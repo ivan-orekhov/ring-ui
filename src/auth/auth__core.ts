@@ -182,7 +182,7 @@ export default class Auth implements HTTPAuth {
   static CLOSE_BACKEND_DOWN_MESSAGE = 'backend-check-succeeded';
   static CLOSE_WINDOW_MESSAGE = 'close-login-window';
   static shouldRefreshToken = TokenValidator.shouldRefreshToken;
-  static storageIsUnavailable = !navigator.cookieEnabled;
+  static storageIsUnavailable = typeof navigator === 'undefined' ? true : !navigator.cookieEnabled;
 
   config: AuthConfig;
   listeners = new Listeners<AuthPayloadMap>();
