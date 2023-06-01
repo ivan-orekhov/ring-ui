@@ -439,8 +439,10 @@ export default class Popup<
 }
 
 (Popup as ComponentType<unknown>).propTypes = {
-  anchorElement: PropTypes.instanceOf(Node),
-  target: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Element)]),
+  anchorElement: PropTypes.instanceOf(typeof Node === 'undefined' ? Object : Node),
+  target: PropTypes.oneOfType(
+    [PropTypes.string, PropTypes.instanceOf(typeof Element === 'undefined' ? Object : Element)]
+  ),
   className: PropTypes.string,
   style: PropTypes.object,
   hidden: PropTypes.bool.isRequired,
