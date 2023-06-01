@@ -63,7 +63,7 @@ export default class Dialog extends PureComponent<DialogProps> {
     onCloseAttempt: PropTypes.func,
     // focusTrap may break popups inside dialog, so use it carefully
     trapFocus: PropTypes.bool,
-    portalTarget: PropTypes.instanceOf(HTMLElement),
+    portalTarget: PropTypes.instanceOf(typeof HTMLElement !== 'undefined' ? HTMLElement : Object),
     autoFocusFirst: PropTypes.bool,
     'data-test': PropTypes.string
   };

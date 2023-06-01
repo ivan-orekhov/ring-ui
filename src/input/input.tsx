@@ -279,8 +279,14 @@ export class Input extends PureComponent<InputProps> {
   onClear: PropTypes.func,
   inputRef: PropTypes.oneOfType([
     PropTypes.func,
-    refObject(PropTypes.instanceOf(HTMLInputElement)),
-    refObject(PropTypes.instanceOf(HTMLTextAreaElement))
+    refObject(
+      PropTypes.instanceOf(typeof HTMLInputElement !== 'undefined' ? HTMLInputElement : Object)
+    ),
+    refObject(
+      PropTypes.instanceOf(
+        typeof HTMLTextAreaElement !== 'undefined' ? HTMLTextAreaElement : Object
+      )
+    )
   ]),
   children: PropTypes.string,
   enableShortcuts: PropTypes.oneOfType([

@@ -619,7 +619,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
 
 (SelectPopup as ComponentType<unknown>).propTypes = {
   activeIndex: PropTypes.number,
-  anchorElement: PropTypes.instanceOf(HTMLElement),
+  anchorElement: PropTypes.instanceOf(typeof HTMLElement !== 'undefined' ? HTMLElement : Object),
   className: PropTypes.string,
   compact: PropTypes.bool,
   data: PropTypes.array,

@@ -101,7 +101,9 @@ class Title extends PureComponent<TitleProps> {
   showFocus: PropTypes.bool,
   collapserExpander: PropTypes.node,
   innerRef: PropTypes.oneOfType([
-    refObject(PropTypes.instanceOf(HTMLDivElement)),
+    refObject(
+      PropTypes.instanceOf(typeof HTMLDivElement !== 'undefined' ? HTMLDivElement : Object)
+    ),
     PropTypes.func
   ]),
 

@@ -187,7 +187,9 @@ class DataList<T extends SelectionItem> extends PureComponent<DataListProps<T>> 
   selectable: PropTypes.bool.isRequired,
   shortcutsMap: PropTypes.shape({}).isRequired,
   innerRef: PropTypes.oneOfType([
-    refObject(PropTypes.instanceOf(HTMLDivElement)),
+    refObject(
+      PropTypes.instanceOf(typeof HTMLDivElement !== 'undefined' ? HTMLDivElement : Object)
+    ),
     PropTypes.func
   ]),
 
