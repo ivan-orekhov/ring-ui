@@ -23,7 +23,7 @@ class AlertService {
   defaultTimeout = 0;
   // This alerts are stored in inverse order (last shown is first in array)
   showingAlerts: AlertItem[] = [];
-  containerElement = document.createElement('div');
+  containerElement = typeof document !== 'undefined' ? document.createElement('div') : undefined;
 
   _getShowingAlerts() {
     return [...this.showingAlerts];
@@ -53,6 +53,10 @@ class AlertService {
    * Renders alert container into virtual node to skip maintaining container
    */
   renderAlerts() {
+    if (!this.containerElement) {
+      return;
+    }
+
     render(this.renderAlertContainer(this.showingAlerts), this.containerElement);
   }
 
