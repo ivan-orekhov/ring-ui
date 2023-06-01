@@ -22,12 +22,18 @@ enum Theme {
   DARK= 'dark'
 }
 
-const darkMatcher = window.matchMedia('(prefers-color-scheme: dark)');
+const darkMatcher = typeof window !== 'undefined' && 'matchMedia' in window
+  ? window.matchMedia('(prefers-color-scheme: dark)')
+  : undefined;
 
 export function useTheme() {
-  const [dark, setDark] = useState(darkMatcher.matches);
+  const [dark, setDark] = useState(() => (darkMatcher ? darkMatcher.matches : false));
 
   useEffect(() => {
+    if (!darkMatcher) {
+      return () => undefined;
+    }
+
     const onChange = (e: MediaQueryListEvent) => setDark(e.matches);
     darkMatcher.addEventListener('change', onChange);
 
