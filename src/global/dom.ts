@@ -5,7 +5,13 @@
 import {SyntheticEvent} from 'react';
 import type {PropertiesHyphen} from 'csstype';
 
-export const getStyles = window.getComputedStyle.bind(window);
+export const getStyles = (() => {
+  if (typeof window !== 'undefined') {
+    return window.getComputedStyle.bind(window);
+  } else {
+    return () => ({} as CSSStyleDeclaration);
+  }
+})();
 
 export function isMounted(node: Node | Range | null | undefined) {
   if (node === document) {
@@ -36,14 +42,24 @@ export function getRect(node: Element | Range | null | undefined): Rect {
 }
 
 export function getPixelRatio() {
-  return 'devicePixelRatio' in window ? window.devicePixelRatio : 1;
+  return typeof window !== 'undefined' && 'devicePixelRatio' in window
+    ? window.devicePixelRatio
+    : 1;
 }
 
 export function getWindowHeight() {
+  if (typeof window === 'undefined') {
+    return 0;
+  }
+
   return window.innerHeight;
 }
 
 export function getWindowWidth() {
+  if (typeof window === 'undefined') {
+    return 0;
+  }
+
   return window.innerWidth;
 }
 
