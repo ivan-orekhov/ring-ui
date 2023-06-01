@@ -43,7 +43,9 @@ export default class Checkbox extends PureComponent<CheckboxProps> {
     children: PropTypes.node,
     inputRef: PropTypes.oneOfType([
       PropTypes.func,
-      refObject(PropTypes.instanceOf(HTMLInputElement))
+      refObject(
+        PropTypes.instanceOf(typeof HTMLInputElement !== 'undefined' ? HTMLInputElement : Object)
+      )
     ])
   };
 
