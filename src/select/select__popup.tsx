@@ -667,7 +667,9 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
   filterIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.elementType]),
   filterRef: PropTypes.oneOfType([
     PropTypes.func,
-    refObject(PropTypes.instanceOf(HTMLInputElement))
+    refObject(
+      PropTypes.instanceOf(typeof HTMLInputElement !== 'undefined' ? HTMLInputElement : Object)
+    )
   ]),
   hidden: PropTypes.bool,
   isInputMode: PropTypes.bool,

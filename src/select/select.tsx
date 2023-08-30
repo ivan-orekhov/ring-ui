@@ -1472,7 +1472,9 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
   filterIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.elementType]),
   filterRef: PropTypes.oneOfType([
     PropTypes.func,
-    refObject(PropTypes.instanceOf(HTMLInputElement))
+    refObject(
+      PropTypes.instanceOf(typeof HTMLInputElement !== 'undefined' ? HTMLInputElement : Object)
+    )
   ]),
 
   getInitial: PropTypes.func,
