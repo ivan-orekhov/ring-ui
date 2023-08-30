@@ -1,4 +1,4 @@
-import React, {Component, PureComponent, SyntheticEvent, ReactNode} from 'react';
+import React, {Component, PureComponent, SyntheticEvent, ReactNode, ComponentType} from 'react';
 import PropTypes from 'prop-types';
 import classNames from 'classnames';
 
@@ -14,6 +14,10 @@ import {Filter} from '../select/select__popup';
 import getUID from '../global/get-uid';
 
 import inputStyles from '../input/input.css';
+
+import {TagAttrs} from '../tag/tag';
+
+import ControlLabel, {LabelType} from '../control-label/control-label';
 
 import styles from './tags-input.css';
 
@@ -38,7 +42,7 @@ export interface TagsInputProps {
     readonly SelectItem[] | Promise<readonly SelectItem[]>
   onAddTag: (params: ToggleTagParams) => void
   onRemoveTag: (params: ToggleTagParams) => void
-  customTagComponent: Component
+  customTagComponent: ComponentType<TagAttrs>
   maxPopupHeight: number
   minPopupWidth: number
   canNotBeEmpty: boolean
@@ -52,9 +56,12 @@ export interface TagsInputProps {
   tags?: readonly TagType[] | null | undefined
   loadingMessage?: string | undefined
   notFoundMessage?: string | undefined
+  hint?: ReactNode | null | undefined
   size: Size
   height?: ControlsHeight | undefined
   label?: ReactNode
+  labelType?: LabelType
+  id?: string | undefined
 }
 
 interface TagsInputState {
@@ -95,6 +102,7 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
 
     loadingMessage: PropTypes.string,
     notFoundMessage: PropTypes.string,
+    hint: PropTypes.node,
     allowAddNewTags: PropTypes.bool
   };
 
@@ -151,7 +159,7 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
 
   static contextType = ControlsHeightContext;
 
-  id = getUID('ring-tags-list-');
+  id = this.props.id || getUID('ring-tags-list-');
 
   node?: HTMLElement | null;
   nodeRef = (node: HTMLElement | null) => {
@@ -176,6 +184,10 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
 
   focusInput = () => {
     this.getInputNode()?.focus();
+  };
+
+  focus = () => {
+    this.focusInput();
   };
 
   addTag = (tag: TagType | null) => {
@@ -343,7 +355,7 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
 
     const {
       disabled, canNotBeEmpty, allowAddNewTags, filter,
-      size, height = this.context, label
+      size, labelType, height = this.context, label
     } = this.props;
 
     const classes = classNames(
@@ -366,12 +378,11 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
         ref={this.nodeRef}
       >
         {label && (
-          <label
+          <ControlLabel
             htmlFor={this.id}
-            className={classNames(inputStyles.label, {
-              [inputStyles.disabledLabel]: disabled
-            })}
-          >{label}</label>
+            disabled={disabled}
+            type={labelType}
+          >{label}</ControlLabel>
         )}
 
         <TagsList
@@ -383,6 +394,7 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
           className={styles.tagsList}
           tagClassName={styles.tag}
           handleClick={this.handleClick}
+          customTagComponent={this.props.customTagComponent}
         >
           <Select
             id={this.id}
@@ -410,6 +422,7 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
 
             loadingMessage={this.props.loadingMessage}
             notFoundMessage={this.props.notFoundMessage}
+            hint={this.props.hint}
           />
         </TagsList>
       </div>

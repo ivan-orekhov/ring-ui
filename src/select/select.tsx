@@ -5,7 +5,9 @@ import React, {
   CSSProperties,
   Fragment,
   HTMLAttributes,
-  ReactNode, RefCallback,
+  ReactNode,
+  Ref,
+  RefCallback,
   SyntheticEvent
 } from 'react';
 import classNames from 'classnames';
@@ -19,7 +21,7 @@ import Avatar, {Size as AvatarSize} from '../avatar/avatar';
 import Popup from '../popup/popup';
 import List, {ActiveItemContext, SelectHandlerParams} from '../list/list';
 import Input, {Size} from '../input/input';
-import InputLabel from '../input/input-label';
+import ControlLabel, {LabelType} from '../control-label/control-label';
 import Shortcuts from '../shortcuts/shortcuts';
 import Button from '../button/button';
 import dataTests from '../global/data-tests';
@@ -33,6 +35,8 @@ import {ListDataItem} from '../list/consts';
 
 import {Directions} from '../popup/popup.consts';
 
+import composeRefs from '../global/composeRefs';
+import {refObject} from '../global/prop-types';
 import {isArray} from '../global/typescript-utils';
 
 import {ControlsHeight, ControlsHeightContext} from '../global/controls-height';
@@ -151,6 +155,8 @@ export type CustomAnchor = ((props: CustomAnchorProps) => ReactNode);
 export interface BaseSelectProps<T = unknown> {
   data: readonly SelectItem<T>[]
   filter: boolean | Filter<T>
+  filterIcon?: string | ComponentType | null | undefined
+  filterRef?: Ref<HTMLInputElement>
   clear: boolean
   loading: boolean
   disabled: boolean
@@ -162,11 +168,14 @@ export interface BaseSelectProps<T = unknown> {
   allowAny: boolean
   maxHeight: number
   hideArrow: boolean
+  showPopup: boolean
   directions: readonly Directions[]
   label: string | null
   selectedLabel: ReactNode
+  labelType?: LabelType
   inputPlaceholder: string
   shortcutsEnabled: boolean
+  tryKeepOpen?: boolean
   onBeforeOpen: () => void
   onLoadMore: () => void
   onOpen: () => void
@@ -176,11 +185,13 @@ export interface BaseSelectProps<T = unknown> {
   onKeyDown: (event: React.KeyboardEvent<HTMLInputElement>) => void
   onSelect: (selected: SelectItem<T> | null, event?: Event | SyntheticEvent) => void
   onDeselect: (selected: SelectItem<T> | null) => void
+  onOutsideClick: (e: PointerEvent) => void
   onAdd: (value: string) => void
   onDone: () => void
   onReset: () => void
   dir: 'ltr' | 'rtl'
   renderBottomToolbar?: () => ReactNode
+  renderTopToolbar?: () => ReactNode
   height?: ControlsHeight | undefined
   targetElement?: HTMLElement | null | undefined
   className?: string | null | undefined
@@ -391,6 +402,8 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
   static defaultProps = {
     data: [],
     filter: false, // enable filter (not in INPUT modes)
+    filterIcon: null,
+    filterRef: noop,
     multiple: false, // multiple can be an object - see demo for more information
     clear: false, // enable clear button that clears the "selected" state
     loading: false, // show a loading indicator while data is loading
@@ -401,6 +414,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
     hideSelected: false, // INPUT mode: clears the input after an option is selected (useful when the selection is displayed in some custom way elsewhere)
     allowAny: false, // INPUT mode: allows any value to be entered
     hideArrow: false, // hide dropdown arrow icon
+    showPopup: false,
 
     maxHeight: 600, // height of the options list, including the filter and the 'Add' button
     directions: [
@@ -430,6 +444,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
 
     onSelect: noop, // single + multi
     onDeselect: noop, // multi
+    onOutsideClick: noop, // multi
     onChange: noop, // multi
 
     onAdd: noop, // search string as first argument
@@ -515,7 +530,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
       this.props.filter.value || '',
     shortcutsEnabled: false,
     popupShortcuts: false,
-    showPopup: false,
+    showPopup: this.props.showPopup,
     prevData: this.props.data,
     prevSelected: null,
     prevMultiple: this.props.multiple,
@@ -582,6 +597,13 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
     if (this.state.addButton) {
       this.addHandler();
     }
+  };
+
+  focus = () => {
+    const focusableSelectExists =
+      this.node?.querySelector<HTMLElement>('[data-test~=ring-select__focus]');
+    const restoreFocusNode = this.props.targetElement || focusableSelectExists;
+    restoreFocusNode?.focus();
   };
 
   private _onEnter = () => {
@@ -717,6 +739,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
               data={_shownData}
               message={message}
               toolbar={showPopup && this.getToolbar()}
+              topbar={this.getTopbar()}
               loading={this.props.loading}
               activeIndex={this.state.selectedIndex}
               hidden={!showPopup}
@@ -729,10 +752,13 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
               top={this.props.top}
               left={this.props.left}
               filter={this.isInputMode() ? false : this.props.filter} // disable popup filter in INPUT mode
+              filterIcon={this.props.filterIcon}
+              filterRef={this.props.filterRef}
               multiple={this.props.multiple}
               filterValue={this.state.filterValue}
               anchorElement={anchorElement}
               onCloseAttempt={this._onCloseAttempt}
+              onOutsideClick={this.props.onOutsideClick}
               onSelect={this._listSelectHandler}
               onSelectAll={this._listSelectAllHandler}
               onFilter={this._filterChangeHandler}
@@ -763,7 +789,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
 
     const shownData = this.getListItems(this.filterValue());
     this.setState({
-      showPopup: !!shownData.length || !this.props.allowAny,
+      showPopup: true,
       shownData
     });
   }
@@ -776,12 +802,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
       }));
 
       if (tryFocusAnchor) {
-        const focusableSelectExists = this.node &&
-          this.node.querySelector<HTMLElement>('[data-test~=ring-select__focus]');
-        const restoreFocusNode = this.props.targetElement || focusableSelectExists;
-        if (restoreFocusNode) {
-          restoreFocusNode.focus();
-        }
+        this.focus();
       }
     }
   }
@@ -827,6 +848,10 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
         )}
       </div>
     );
+  }
+
+  getTopbar() {
+    return this.props.renderTopToolbar?.();
   }
 
   getLowerCaseLabel = getLowerCaseLabel;
@@ -948,8 +973,12 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
       return;
     }
 
+    const tryKeepOpen = this.props.tryKeepOpen ?? opts.tryKeepOpen;
+
     if (!this.props.multiple) {
-      this._hidePopup(isSelectItemEvent);
+      if (!tryKeepOpen) {
+        this._hidePopup(isSelectItemEvent);
+      }
       this.setState({
         selected,
         selectedIndex: this._getSelectedIndex(selected, this.props.data)
@@ -963,7 +992,6 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
         (this.props.onChange as (selected: SelectItem<T>, event?: Event) => void)(selected, event);
       });
     } else {
-      const {tryKeepOpen} = opts;
       if (!tryKeepOpen) {
         this._hidePopup(isSelectItemEvent);
       }
@@ -989,7 +1017,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
         );
 
         const nextState: Partial<SelectState<T>> = {
-
+          filterValue: '',
           selected: nextSelection,
           selectedIndex: this._getSelectedIndex(selected, this.props.data)
         };
@@ -1274,7 +1302,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
               autoComplete="off"
               id={this.props.id}
               onClick={this._clickHandler}
-              inputRef={this.filterRef}
+              inputRef={composeRefs(this.filterRef, this.props.filterRef)}
               disabled={this.props.disabled}
               value={this.state.filterValue}
               borderless={this.props.type === Type.INPUT_WITHOUT_CONTROLS}
@@ -1296,6 +1324,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
                   ...this._popup?.list?.shortcutsMap
                 })
                 : undefined}
+              icon={this.props.filterIcon}
               afterInput={this.props.type === Type.INPUT && iconsNode}
             />
             {this._renderPopup()}
@@ -1320,11 +1349,11 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
             data-test={dataTests('ring-select', dataTest)}
           >
             {selectedLabel && (
-              <InputLabel
-                label={selectedLabel}
+              <ControlLabel
+                type={this.props.labelType}
                 disabled={this.props.disabled}
                 htmlFor={this.props.id}
-              />
+              >{selectedLabel}</ControlLabel>
             )}
             {shortcutsEnabled && (
               <Shortcuts
@@ -1440,6 +1469,11 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
   multiple: PropTypes.oneOfType([PropTypes.bool, PropTypes.object]),
   allowAny: PropTypes.bool,
   filter: PropTypes.oneOfType([PropTypes.bool, PropTypes.object]),
+  filterIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.elementType]),
+  filterRef: PropTypes.oneOfType([
+    PropTypes.func,
+    refObject(PropTypes.instanceOf(HTMLInputElement))
+  ]),
 
   getInitial: PropTypes.func,
   onClose: PropTypes.func,
@@ -1453,6 +1487,7 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
   onBeforeOpen: PropTypes.func,
   onSelect: PropTypes.func,
   onDeselect: PropTypes.func,
+  onOutsideClick: PropTypes.func,
   onFocus: PropTypes.func,
   onBlur: PropTypes.func,
   onKeyDown: PropTypes.func,
@@ -1488,6 +1523,8 @@ export default class Select<T = unknown> extends Component<SelectProps<T>, Selec
   inputPlaceholder: PropTypes.string,
   clear: PropTypes.bool,
   hideArrow: PropTypes.bool,
+  showPopup: PropTypes.bool,
+  tryKeepOpen: PropTypes.bool,
   compact: PropTypes.bool,
   size: PropTypes.oneOf(Object.values(Size)),
   customAnchor: PropTypes.func,

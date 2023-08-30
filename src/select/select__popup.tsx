@@ -1,7 +1,14 @@
 /**
  * @description Displays a popup with select's options.
  */
-import React, {ComponentType, CSSProperties, PureComponent, ReactNode, SyntheticEvent} from 'react';
+import React, {
+  ComponentType,
+  CSSProperties,
+  PureComponent,
+  ReactNode,
+  Ref,
+  SyntheticEvent
+} from 'react';
 import classNames from 'classnames';
 import searchIcon from '@jetbrains/icons/search';
 import memoizeOne from 'memoize-one';
@@ -24,12 +31,15 @@ import Shortcuts from '../shortcuts/shortcuts';
 import Button from '../button/button';
 import Text from '../text/text';
 import {ControlsHeight} from '../global/controls-height';
+import {refObject} from '../global/prop-types';
+import composeRefs from '../global/composeRefs';
 
 import {DEFAULT_DIRECTIONS} from '../popup/popup.consts';
 
 import {ListDataItem} from '../list/consts';
 
 import {ShortcutsMap} from '../shortcuts/core';
+import {TagAttrs} from '../tag/tag';
 
 import SelectFilter from './select__filter';
 import styles from './select-popup.css';
@@ -74,13 +84,17 @@ export interface TagsReset {
 
 export interface Tags {
   reset?: TagsReset | null | undefined
+  customTagComponent?: (tag: TagAttrs) => ReactNode
 }
 
 export interface SelectPopupProps<T = unknown> {
   data: readonly ListDataItem<T>[]
   activeIndex: number | null
   toolbar: ReactNode
+  topbar: ReactNode
   filter: boolean | Filter<T>
+  filterIcon?: string | ComponentType | null | undefined
+  filterRef?: Ref<HTMLInputElement>
   message: string | null
   anchorElement: HTMLElement | null
   maxHeight: number
@@ -88,6 +102,7 @@ export interface SelectPopupProps<T = unknown> {
   loading: boolean
   onSelect: (item: ListDataItem<T>, event: Event, params?: SelectHandlerParams,) => void
   onCloseAttempt: (e?: Event | SyntheticEvent, isEsc?: boolean | undefined) => void
+  onOutsideClick: (e: PointerEvent) => void
   onFilter: (e: React.ChangeEvent<HTMLInputElement>) => void
   onClear: (e: React.MouseEvent<HTMLButtonElement>) => void
   onLoadMore: () => void
@@ -119,7 +134,10 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
     data: [],
     activeIndex: null,
     toolbar: null,
+    topbar: null,
     filter: false,
+    filterIcon: null,
+    filterRef: noop,
     multiple: false,
     message: null,
     anchorElement: null,
@@ -128,6 +146,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
     loading: false,
     onSelect: noop,
     onCloseAttempt: noop,
+    onOutsideClick: noop,
     onFilter: noop,
     onClear: noop,
     onLoadMore: noop,
@@ -298,7 +317,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
         >
           {!this.props.tags && (
             <Icon
-              glyph={searchIcon}
+              glyph={this.props.filterIcon ?? searchIcon}
               className={styles.filterIcon}
               data-test-custom="ring-select-popup-filter-icon"
             />
@@ -308,7 +327,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
             rgShortcutsMap={this.popupFilterShortcutsMap}
 
             value={this.props.filterValue}
-            inputRef={this.filterRef}
+            inputRef={composeRefs(this.filterRef, this.props.filterRef)}
             onBlur={this.popupFilterOnBlur}
             onFocus={this.onFilterFocus}
             className="ring-js-shortcuts"
@@ -344,6 +363,13 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
     }
   });
 
+  getCustomTag(tags: Tags | boolean | null) {
+    if (tags !== null && typeof tags !== 'boolean') {
+      return tags.customTagComponent;
+    }
+    return undefined;
+  }
+
   getTags() {
     return Array.isArray(this.props.selected) && (
       <div>
@@ -353,6 +379,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
           handleRemove={this.handleRemoveTag}
           handleClick={this.handleTagClick}
           disabled={this.props.disabled}
+          customTagComponent={this.getCustomTag(this.props.tags)}
         />
       </div>
     );
@@ -550,6 +577,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
   render() {
     const {
       toolbar,
+      topbar,
       className,
       multiple,
       hidden,
@@ -557,6 +585,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
       anchorElement,
       minWidth,
       onCloseAttempt,
+      onOutsideClick,
       directions,
       top,
       left,
@@ -574,7 +603,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
             multiple.selectAll && this.getSelectAll();
           const list = this.getList(this.props.ringPopupTarget || ringPopupTarget);
           const bottomLine = this.getBottomLine();
-          const hasContent = filterWithTags || selectAll || list || bottomLine || toolbar;
+          const hasContent = filterWithTags || selectAll || list || bottomLine || toolbar || topbar;
           return (
             <Popup
               trapFocus={false}
@@ -586,6 +615,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
               anchorElement={anchorElement}
               minWidth={minWidth}
               onCloseAttempt={onCloseAttempt}
+              onOutsideClick={onOutsideClick}
               directions={directions}
               top={top}
               left={left}
@@ -602,6 +632,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
                       scope={this.shortcutsScope}
                     />
                   )}
+                {topbar}
                 {/* Add empty div to prevent the change of List position in DOM*/}
                 {hidden ? <div/> : filterWithTags}
                 {selectAll}
@@ -633,6 +664,11 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
     placeholder: PropTypes.string
   })]),
   filterValue: PropTypes.string,
+  filterIcon: PropTypes.oneOfType([PropTypes.string, PropTypes.elementType]),
+  filterRef: PropTypes.oneOfType([
+    PropTypes.func,
+    refObject(PropTypes.instanceOf(HTMLInputElement))
+  ]),
   hidden: PropTypes.bool,
   isInputMode: PropTypes.bool,
   listId: PropTypes.string,
@@ -648,6 +684,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
   loading: PropTypes.bool,
   onClear: PropTypes.func,
   onCloseAttempt: PropTypes.func,
+  onOutsideClick: PropTypes.func,
   onEmptyPopupEnter: PropTypes.func,
   onFilter: PropTypes.func,
   onLoadMore: PropTypes.func,
@@ -659,6 +696,7 @@ export default class SelectPopup<T = unknown> extends PureComponent<SelectPopupP
   style: PropTypes.object,
   tags: PropTypes.object,
   toolbar: PropTypes.node,
+  topbar: PropTypes.node,
   top: PropTypes.number
 };
 
