@@ -50,6 +50,7 @@ export interface TagsInputProps {
   autoOpen: boolean
   renderOptimization: boolean
   allowAddNewTags: boolean
+  newTagTriggerKey?: string
   filter: boolean | Filter
   placeholder: string
   className?: string | null | undefined
@@ -103,7 +104,8 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
     loadingMessage: PropTypes.string,
     notFoundMessage: PropTypes.string,
     hint: PropTypes.node,
-    allowAddNewTags: PropTypes.bool
+    allowAddNewTags: PropTypes.bool,
+    newTagTriggerKey: PropTypes.string
   };
 
   static defaultProps = {
@@ -118,6 +120,7 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
     autoOpen: false,
     renderOptimization: true,
     allowAddNewTags: false,
+    newTagTriggerKey: ' ',
     filter: {fn: () => true},
     placeholder: 'Select an option',
     size: Size.M
@@ -280,7 +283,7 @@ export default class TagsInput extends PureComponent<TagsInputProps, TagsInputSt
     const isInputFocused = () => event.target instanceof Element &&
       event.target.matches(this.getInputNode()?.tagName ?? '');
 
-    if (key === ' ' && this.props.allowAddNewTags) {
+    if (key === this.props.newTagTriggerKey && this.props.allowAddNewTags) {
       event.stopPropagation();
       const value = this.getInputNode()?.value;
       if (value != null && value !== '') {
