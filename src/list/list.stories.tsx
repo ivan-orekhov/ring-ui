@@ -7,6 +7,7 @@ import hubConfig from '../../.storybook/hub-config';
 import reactDecorator from '../../.storybook/react-decorator';
 
 import Loader from '../loader/loader';
+import Tooltip from '../tooltip/tooltip';
 import Auth from '../auth/auth';
 import Code from '../code/code';
 import ContentLayout, {Sidebar} from '../content-layout/content-layout';
@@ -14,7 +15,7 @@ import ContentLayout, {Sidebar} from '../content-layout/content-layout';
 
 import List, {ListAttrs} from './list';
 import Source from './list__users-groups-source';
-import styles from './list.examples.css';
+import styles from './list.stories.css';
 import {ListDataItem} from './consts';
 
 const FLAG_EN_URL =
@@ -276,3 +277,14 @@ export const withUsers = () => <UserList/>;
 
 withUsers.storyName = 'with users';
 withUsers.parameters = {hermione: {skip: true}};
+
+export const withCustomTooltip: Story<ListAttrs> = args => <List {...args}/>;
+
+withCustomTooltip.storyName = 'with custom tooltip';
+withCustomTooltip.args = {
+  shortcuts: true,
+  renderOptimization: false,
+  data: [
+    {label: 'Custom Tooltip', key: 1, title: '', labelWrapper: children => <Tooltip title={'Cutom Tooltip'}>{children}</Tooltip>}
+  ]
+};
