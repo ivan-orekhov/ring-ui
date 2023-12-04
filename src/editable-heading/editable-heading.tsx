@@ -1,4 +1,4 @@
-import React, {InputHTMLAttributes, useEffect} from 'react';
+import React, {InputHTMLAttributes, useCallback, useEffect} from 'react';
 import classNames from 'classnames';
 
 import Heading, {Levels} from '../heading/heading';
@@ -18,7 +18,9 @@ export interface EditableHeadingTranslations {
   cancel: string;
 }
 
-export type EditableHeadingProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'size'> & {
+export type EditableHeadingProps = Omit<
+  InputHTMLAttributes<HTMLInputElement | HTMLTextAreaElement
+>, 'value' | 'size'> & {
   level?: Levels;
   headingClassName?: string | null;
   inputClassName?: string | null;
@@ -34,6 +36,7 @@ export type EditableHeadingProps = Omit<InputHTMLAttributes<HTMLInputElement>, '
   'data-test'?: string | null;
   error?: string;
   multiline?: boolean;
+  maxInputRows?: number;
   renderMenu?: () => React.ReactNode;
   translations?: EditableHeadingTranslations;
 };
@@ -47,7 +50,8 @@ export const EditableHeading = (props: EditableHeadingProps) => {
     size = Size.L, onEdit = noop, onSave = noop, onCancel = noop,
     autoFocus = true, 'data-test': dataTest, error, disabled, multiline = false,
     renderMenu = () => null,
-    onFocus, onBlur,
+    onFocus, onBlur, onChange,
+    onScroll, maxInputRows,
     translations = {
       save: 'Save',
       cancel: 'Cancel'
@@ -59,6 +63,9 @@ export const EditableHeading = (props: EditableHeadingProps) => {
   const [isInFocus, setIsInFocus] = React.useState(false);
   const [isMouseDown, setIsMouseDown] = React.useState(false);
   const [isInSelectionMode, setIsInSelectionMode] = React.useState(false);
+  const textAreaRef = React.useRef<HTMLTextAreaElement>(null);
+  const [isScrolledToBottom, setIsScrolledToBottom] = React.useState(false);
+  const [isOverflow, setIsOverflow] = React.useState(false);
 
   const hasError = error !== undefined;
 
@@ -95,10 +102,37 @@ export const EditableHeading = (props: EditableHeadingProps) => {
   const inputClasses = classNames(
     'ring-js-shortcuts',
     styles.input,
+    styles.textarea,
+    {[styles.textareaNotOverflow]: !isOverflow},
     inputStyles[`size${size}`],
     styles[`level${level}`],
     inputClassName
   );
+
+  const stretch = useCallback((el: HTMLElement | null | undefined) => {
+    if (!el || !el.style) {
+      return;
+    }
+
+    el.style.height = '0';
+    const {paddingTop, paddingBottom} = window.getComputedStyle(el);
+    el.style.height = `${el.scrollHeight - parseFloat(paddingTop) - parseFloat(paddingBottom)}px`;
+  }, []);
+
+  const checkValue = useCallback((el: HTMLElement | null | undefined) => {
+    if (multiline && el != null && el.scrollHeight >= el.clientHeight) {
+      stretch(el);
+    }
+  }, [stretch, multiline]);
+
+  const checkOverflow = useCallback((el: HTMLInputElement | HTMLTextAreaElement) => {
+    const scrollHeight = el.scrollHeight || 0;
+    const clientHeight = el.clientHeight || 0;
+    const scrollTop = el.scrollTop || 0;
+
+    setIsScrolledToBottom(scrollHeight - clientHeight <= scrollTop);
+    setIsOverflow(scrollHeight > clientHeight);
+  }, [setIsScrolledToBottom]);
 
   const onHeadingMouseDown = React.useCallback(() => {
     setIsMouseDown(true);
@@ -121,15 +155,34 @@ export const EditableHeading = (props: EditableHeadingProps) => {
     setIsInSelectionMode(false);
   }, [isMouseDown, isInSelectionMode, disabled, onEdit]);
 
-  const onInputFocus = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    setIsInFocus(true);
-    onFocus?.(e);
-  }, [onFocus]);
+  const onInputFocus = React.useCallback(
+    (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+      setIsInFocus(true);
+      checkValue(e.target);
+      checkOverflow(e.target as HTMLInputElement | HTMLTextAreaElement);
+      onFocus?.(e);
+    }, [onFocus, checkOverflow, checkValue]);
 
-  const onInputBlur = React.useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    setIsInFocus(false);
-    onBlur?.(e);
-  }, [onBlur]);
+  const onInputChange = React.useCallback(
+    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      checkValue(e.target);
+      checkOverflow(e.target as HTMLInputElement | HTMLTextAreaElement);
+      onChange?.(e);
+    }, [onChange, checkOverflow, checkValue]);
+
+  const onInputScroll = React.useCallback(
+    (e: React.UIEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      checkOverflow(e.target as HTMLInputElement | HTMLTextAreaElement);
+      onScroll?.(e);
+    }, [onScroll, checkOverflow]);
+
+  const onInputBlur = React.useCallback(
+    (e: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>
+    ) => {
+      setIsInFocus(false);
+      onBlur?.(e);
+    }, [onBlur]);
 
   useEffect(() => {
     window.addEventListener('mousemove', onMouseMove);
@@ -139,7 +192,7 @@ export const EditableHeading = (props: EditableHeadingProps) => {
       window.removeEventListener('mousemove', onMouseMove);
       window.removeEventListener('mouseup', onMouseUp);
     };
-  });
+  }, [onMouseMove, onMouseUp]);
 
   return (
     <>
@@ -153,16 +206,46 @@ export const EditableHeading = (props: EditableHeadingProps) => {
                 disabled={isShortcutsDisabled}
               />
 
-              <input
-                className={inputClasses}
-                value={children}
-                autoFocus={autoFocus}
-                data-test={dataTest}
-                disabled={isSaving}
-                {...restProps}
-                onFocus={onInputFocus}
-                onBlur={onInputBlur}
-              />
+              {!multiline
+                ? (
+                  <input
+                    className={inputClasses}
+                    value={children}
+                    autoFocus={autoFocus}
+                    data-test={dataTest}
+                    disabled={isSaving}
+                    onChange={onChange}
+                    {...restProps}
+                    onFocus={onInputFocus}
+                    onBlur={onInputBlur}
+                  />
+                )
+                : (
+                  <div
+                    className={
+                      classNames(
+                        styles.textareaWrapper,
+                        inputStyles[`size${size}`]
+                      )
+                    }
+                  >
+                    <textarea
+                      ref={textAreaRef}
+                      className={inputClasses}
+                      value={children}
+                      autoFocus={autoFocus}
+                      data-test={dataTest}
+                      disabled={isSaving}
+                      onChange={onInputChange}
+                      {...restProps}
+                      onFocus={onInputFocus}
+                      onBlur={onInputBlur}
+                      onScroll={onInputScroll}
+                      style={{maxHeight: maxInputRows ? `${maxInputRows}lh` : ''}}
+                    />
+                    {!isScrolledToBottom && <div className={styles.textareaFade}/>}
+                  </div>
+                )}
             </>
           )
           : (
